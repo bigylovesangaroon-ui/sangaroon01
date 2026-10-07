@@ -901,16 +901,18 @@ $("dash").addEventListener("click",function(e){var t=e.target.closest("[data-m]"
 var UK="usr1",SK="sess1",CU=null;
 function lsj(k,d){try{return JSON.parse(localStorage.getItem(k)||"null")||d}catch(e){return d}}
 function lss(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-var USERS=lsj(UK,[]);
+var USERS=lsj(UK,[]),BI=[{"us": "hhzcGkOyOSDaPkQ+tXNS1w==", "uh": "8G/GATOF6xPZRefeR9v6eLAjkklNONyjzf48SHrXIt4=", "s": "MvcCfIcSS+6uZq0EplzGOw==", "h": "UeJH/Fh06uNv5m94qz+9XeI/4CYQzALEmnQs9Pv/4mI=", "n": "นายแสงอรุณ ฤทธิ์ศิริ", "r": "admin"}, {"us": "e+r9eEXVQpwkdnuaBcjfJQ==", "uh": "bB4Q0dLxxKAOR2n28xP0II0/xHBQamsGgx9NEPP/da8=", "s": "+RgcDYwiYPpG9UqCKEZ//A==", "h": "V+SzWARKAjCiBHVCoJpsNy4fuWcsk7baWy4at8H8ijk=", "n": "นายภาณุพงศ์ หวลประไพ", "r": "admin"}];
+try{localStorage.removeItem(SK);sessionStorage.removeItem(SK)}catch(e){}
+async function findBI(nm){nm=String(nm).trim();for(var i=0;i<BI.length;i++){var h=await hpw(nm,BI[i].us);if(h.h==BI[i].uh)return BI[i]}return null}
 function b64(b){var a=new Uint8Array(b),s="";for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s)}
 function ub64(t){var s=atob(t),a=new Uint8Array(s.length);for(var i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a}
 async function hpw(pw,sl){if(!(window.crypto&&crypto.subtle))throw new Error("nocrypto");var salt=sl?ub64(sl):crypto.getRandomValues(new Uint8Array(16));
 var key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveBits"]);
 var bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:salt,iterations:150000,hash:"SHA-256"},key,256);return {s:b64(salt),h:b64(bits)}}
 function findU(u){u=String(u).trim().toLowerCase();for(var i=0;i<USERS.length;i++)if(USERS[i].u==u)return USERS[i];return null}
-function showAuth(){document.body.classList.add("locked");var none=!USERS.length;$("lf").hidden=none;$("sf").hidden=!none;$("auth").querySelector(".at b").textContent=none?"ตั้งค่าครั้งแรก":"เข้าสู่ระบบ"}
-function unlock(u){CU=u;document.body.classList.remove("locked");$("usr").hidden=false;$("un").textContent="👤 "+u.n+" ("+(u.r=="admin"?"ผู้ดูแล":"เจ้าหน้าที่")+")";$("ub1").style.display=u.r=="admin"?"":"none"}
-function startSess(u){lss(SK,{u:u.u,exp:Date.now()+8*3600*1000})}
+function showAuth(){document.body.classList.add("locked");var none=false;$("lf").hidden=none;$("sf").hidden=!none;$("auth").querySelector(".at b").textContent=none?"ตั้งค่าครั้งแรก":"เข้าสู่ระบบ"}
+function unlock(u){CU=u;document.body.classList.remove("locked");$("usr").hidden=false;$("un").textContent="👤 "+u.n+" ("+(u.r=="admin"?"ผู้ดูแล":"เจ้าหน้าที่")+")";$("ub1").style.display=u.r=="admin"?"":"none";$("ub2").style.display=u.bi?"none":""}
+function startSess(u){}
 function logout(){try{localStorage.removeItem(SK)}catch(e){}CU=null;$("usr").hidden=true;$("lp").value="";showAuth()}
 $("sf").onsubmit=async function(e){e.preventDefault();var m=$("sfm");m.textContent="";var u=$("su").value.trim().toLowerCase();
 if($("sp").value!=$("sp2").value){m.textContent="รหัสผ่านทั้งสองช่องไม่ตรงกัน";return}
@@ -920,7 +922,7 @@ var FAIL=lsj("fail1",{n:0,t:0});
 $("lf").onsubmit=async function(e){e.preventDefault();var m=$("lm");m.textContent="";
 if(FAIL.t>Date.now()){m.textContent="ลองผิดหลายครั้ง กรุณารอ "+Math.ceil((FAIL.t-Date.now())/1000)+" วินาที";return}
 var u=findU($("lu").value),ok=false;
-try{if(u&&u.on!==false){var h=await hpw($("lp").value,u.s);ok=h.h==u.h}}catch(er){m.textContent="เบราว์เซอร์นี้ไม่รองรับการเข้ารหัสรหัสผ่าน (ต้องเปิดผ่าน https)";return}
+try{var b=await findBI($("lu").value);if(b){var h0=await hpw($("lp").value,b.s);if(h0.h==b.h){ok=true;u={u:"bi"+BI.indexOf(b),n:b.n,r:b.r,s:b.s,h:b.h,bi:1,on:true}}}else if(u&&u.on!==false){var h=await hpw($("lp").value,u.s);ok=h.h==u.h}}catch(er){m.textContent="เบราว์เซอร์นี้ไม่รองรับการเข้ารหัสรหัสผ่าน (ต้องเปิดผ่าน https)";return}
 if(ok){FAIL={n:0,t:0};lss("fail1",FAIL);startSess(u);$("lp").value="";unlock(u)}
 else{FAIL.n++;if(FAIL.n>=5){FAIL={n:0,t:Date.now()+30000}}lss("fail1",FAIL);m.textContent=(u&&u.on===false)?"บัญชีนี้ถูกปิดใช้งาน":"ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"}};
 $("ub3").onclick=logout;
@@ -947,7 +949,7 @@ $("ul").onclick=async function(e){var b=e.target.closest("button[data-a]");if(!b
 if(b.dataset.a=="del"){if(u.r=="admin"&&admins()<2){$("um_m").textContent="ลบผู้ดูแลคนสุดท้ายไม่ได้";return}if(b.dataset.c!="1"){b.dataset.c="1";b.textContent="ยืนยันลบ?";return}USERS=USERS.filter(function(x){return x!==u});lss(UK,USERS);umRender()}
 if(b.dataset.a=="pw"){var p=$("ap").value;if(p.length<8){$("um_m").textContent="พิมพ์รหัสผ่านใหม่ (อย่างน้อย 8 ตัว) ในช่อง \"รหัสผ่านเริ่มต้น\" ด้านบน แล้วกด \"ตั้งรหัสใหม่\" อีกครั้ง";$("ap").focus();return}
 try{var h=await hpw(p);u.s=h.s;u.h=h.h;lss(UK,USERS);$("ap").value="";$("um_m").textContent="ตั้งรหัสผ่านใหม่ให้ "+u.u+" แล้ว"}catch(er){$("um_m").textContent="ทำรายการไม่สำเร็จ"}}};
-(function(){var se=lsj(SK,null),u=se&&se.exp>Date.now()?findU(se.u):null;if(u&&u.on!==false)unlock(u);else showAuth()})();
+showAuth();
 render();
 </script>
 </body>
